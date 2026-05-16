@@ -1,20 +1,37 @@
 import { NextResponse } from "next/server"
-import { getEvent, setEvent } from "@/lib/kv"
+import { createEvent, getEvent, setEvent } from "@/lib/kv"
+import { loadEvent, parseEventId } from "@/lib/api-event"
 import type { EventData } from "@/lib/types"
 
-export async function GET() {
-  const data = await getEvent()
-  return NextResponse.json(data)
+export async function POST() {
+  const id = await createEvent()
+  const data = await getEvent(id)
+  return NextResponse.json({ id, ...data! })
+}
+
+export async function GET(req: Request) {
+  const eventIdOrError = parseEventId(req)
+  if (eventIdOrError instanceof NextResponse) return eventIdOrError
+
+  const eventOrError = await loadEvent(eventIdOrError)
+  if (eventOrError instanceof NextResponse) return eventOrError
+
+  return NextResponse.json({ id: eventIdOrError, ...eventOrError })
 }
 
 export async function PUT(req: Request) {
+  const eventIdOrError = parseEventId(req)
+  if (eventIdOrError instanceof NextResponse) return eventIdOrError
+
+  const currentOrError = await loadEvent(eventIdOrError)
+  if (currentOrError instanceof NextResponse) return currentOrError
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== "object") {
     return NextResponse.json({ error: "不正なリクエストです" }, { status: 400 })
   }
 
-  const current = await getEvent()
-  const updated: EventData = { ...current }
+  const updated: EventData = { ...currentOrError }
 
   if ("participants" in body) {
     if (
@@ -24,7 +41,6 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "参加者データが不正です" }, { status: 400 })
     }
     updated.participants = [...new Set<string>(body.participants.map((p: string) => p.trim()).filter(Boolean))]
-    // 参加者変更時は振り分けをリセット
     updated.assignments = []
     updated.isAssigned = false
   }
@@ -54,6 +70,6 @@ export async function PUT(req: Request) {
     updated.assignments = []
   }
 
-  await setEvent(updated)
-  return NextResponse.json(updated)
+  await setEvent(eventIdOrError, updated)
+  return NextResponse.json({ id: eventIdOrError, ...updated })
 }

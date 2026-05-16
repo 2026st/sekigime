@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server"
-import { getEvent } from "@/lib/kv"
+import { loadEvent, parseEventId } from "@/lib/api-event"
 
 export async function GET(req: Request) {
+  const eventIdOrError = parseEventId(req)
+  if (eventIdOrError instanceof NextResponse) return eventIdOrError
+
   const { searchParams } = new URL(req.url)
   const name = searchParams.get("name")?.trim()
 
@@ -9,15 +12,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "名前を入力してください" }, { status: 400 })
   }
 
-  const event = await getEvent()
+  const eventOrError = await loadEvent(eventIdOrError)
+  if (eventOrError instanceof NextResponse) return eventOrError
 
-  if (!event.isAssigned) {
+  if (!eventOrError.isAssigned) {
     return NextResponse.json({ error: "まだ席が決まっていません。少しお待ちください！" }, { status: 404 })
   }
 
-  const assignment = event.assignments.find(
-    (a) => a.name.trim() === name
-  )
+  const assignment = eventOrError.assignments.find((a) => a.name.trim() === name)
 
   if (!assignment) {
     return NextResponse.json(
@@ -26,11 +28,11 @@ export async function GET(req: Request) {
     )
   }
 
-  const table = event.tables.find((t) => t.id === assignment.tableId)
+  const table = eventOrError.tables.find((t) => t.id === assignment.tableId)
   return NextResponse.json({
     name: assignment.name,
     tableId: assignment.tableId,
-    tableCount: event.tables.length,
+    tableCount: eventOrError.tables.length,
     capacity: table?.capacity ?? 0,
   })
 }

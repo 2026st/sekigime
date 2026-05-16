@@ -14,3 +14,5 @@ export const DEFAULT_EVENT: EventData = {
   assignments: [],
   isAssigned: false,
 }
+
+export type EventWithId = EventData & { id: string }
