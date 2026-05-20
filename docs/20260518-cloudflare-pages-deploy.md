@@ -1,6 +1,26 @@
 # Cloudflare Pages デプロイ手順（Firestore）
 
+## 重要（デプロイ失敗時）
 
+Cloudflare の **Build command を `pnpm run build` のままにしないこと**。それは `next build` のみで、**OpenNext のアダプトが走らない**ため、デプロイで次のように失敗する。
+
+`ERROR Could not find compiled Open Next config, did you run the build command?`
+
+**推奨ビルドコマンド**（`package.json` の npm スクリプトに依存しない。古いブランチや未 push でも動く）:
+
+```text
+pnpm install && pnpm exec opennextjs-cloudflare build
+```
+
+**代替**（リポジトリに `build:cloudflare` スクリプトが入っている場合のみ）:
+
+```text
+pnpm install && pnpm run build:cloudflare
+```
+
+`ERR_PNPM_NO_SCRIPT Missing script: build:cloudflare` と出る場合は、**まだ `build:cloudflare` が push されていない**か、**別ブランチをビルドしている**状態です。上記の **`pnpm exec opennextjs-cloudflare build`** に切り替えてください。
+
+デプロイ（Deploy command）は `npx wrangler deploy` のままでよい（OpenNext 検出後に処理される）。
 
 ## 概要
 
@@ -46,15 +66,15 @@ Next.js 16（App Router + API Routes）を [@opennextjs/cloudflare](https://open
 
 4. `.firebaserc.example` を `.firebaserc` にコピーし、`YOUR_FIREBASE_PROJECT_ID` を差し替える。
 
-5. ルール・インデックスの反映:
+5. ルール・インデックスの反映（ログイン済みならプロジェクトルートで）:
 
    ```bash
-
-   firebase deploy --only firestore
-
+   pnpm run firebase:deploy-firestore
    ```
 
-   または Firebase MCP が使える環境なら `firebase_deploy`（`only: firestore`）。
+   初回だけ `.firebaserc` が無い場合は `.firebaserc.example` をコピーしてプロジェクト ID を入れるか、`pnpm exec firebase use --add` で紐づける。
+
+   または Firebase MCP の `firebase_deploy`（`only: firestore`）。
 
 
 
@@ -108,9 +128,11 @@ Windows では OpenNext のシンボリックリンク制限により `opennextj
 
    - **Framework preset**: None
 
-   - **Build command**: `pnpm install && pnpm exec opennextjs-cloudflare build`
+   - **Build command**: `pnpm install && pnpm exec opennextjs-cloudflare build`（**推奨**。※ `pnpm run build:cloudflare` は最新の `package.json` がデプロイブランチに含まれる場合のみ可）
 
    - **Build output directory**: 空欄（`wrangler.jsonc` をソースとして利用）
+
+   - **Deploy command**: `npx wrangler deploy`（既定のまま）
 
 3. **環境変数**（本番）:
 
