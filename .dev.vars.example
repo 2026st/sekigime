@@ -1,0 +1,4 @@
+NEXTJS_ENV=development
+# GCP サービスアカウント JSON を 1 行の Base64 で設定（改行は JSON 内の \n のまま）
+# PowerShell 例: [Convert]::ToBase64String([IO.File]::ReadAllBytes("path\to\key.json"))
+FIREBASE_SERVICE_ACCOUNT_JSON_B64=

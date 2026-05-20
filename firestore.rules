@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // アプリは Next.js API 経由のみアクセス（Admin SDK）。クライアント直叩きは不可。
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
