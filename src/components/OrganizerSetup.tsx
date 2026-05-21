@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react"
 import { ParticipantEditor } from "@/components/ParticipantEditor"
 import { TableEditor } from "@/components/TableEditor"
+import { randomAssign } from "@/lib/assign"
+import {
+  getEvent,
+  mergeEventUpdate,
+  setEvent,
+} from "@/lib/firebase/events"
 import type { EventWithId, Table } from "@/lib/types"
 
 type Props = {
@@ -10,25 +16,28 @@ type Props = {
 }
 
 export function OrganizerSetup({ eventId }: Props) {
-  const [event, setEvent] = useState<EventWithId | null>(null)
+  const [event, setEventState] = useState<EventWithId | null>(null)
   const [assigning, setAssigning] = useState(false)
   const [error, setError] = useState("")
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "failed">("idle")
 
-  const eventQuery = `eventId=${encodeURIComponent(eventId)}`
   const participantUrl =
     typeof window !== "undefined" ? `${window.location.origin}/${eventId}` : `/${eventId}`
 
   const fetchEvent = async () => {
-    const res = await fetch(`/api/event?${eventQuery}`)
-    if (!res.ok) {
-      setError((await res.json()).error ?? "読み込みに失敗しました")
-      setEvent(null)
-      return
+    try {
+      const data = await getEvent(eventId)
+      if (!data) {
+        setError("イベントが見つかりません")
+        setEventState(null)
+        return
+      }
+      setEventState({ id: eventId, ...data })
+      setError("")
+    } catch {
+      setError("読み込みに失敗しました")
+      setEventState(null)
     }
-    const data = await res.json()
-    setEvent(data)
-    setError("")
   }
 
   useEffect(() => {
@@ -36,46 +45,42 @@ export function OrganizerSetup({ eventId }: Props) {
   }, [eventId])
 
   const saveParticipants = async (participants: string[]) => {
-    const res = await fetch(`/api/event?${eventQuery}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participants }),
-    })
-    const data = await res.json()
-    if (res.ok) setEvent(data)
+    if (!event) return
+    const updated = mergeEventUpdate(event, { participants })
+    await setEvent(eventId, updated)
+    setEventState({ id: eventId, ...updated })
   }
 
   const saveTables = async (tables: Table[]) => {
-    const res = await fetch(`/api/event?${eventQuery}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tables }),
-    })
-    const data = await res.json()
-    if (res.ok) setEvent(data)
+    if (!event) return
+    const updated = mergeEventUpdate(event, { tables })
+    await setEvent(eventId, updated)
+    setEventState({ id: eventId, ...updated })
   }
 
   const assign = async () => {
+    if (!event) return
     setAssigning(true)
     setError("")
-    const res = await fetch(`/api/assign?${eventQuery}`, { method: "POST" })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error)
-    } else {
-      setEvent(data)
+    try {
+      const assignments = randomAssign(event.participants, event.tables)
+      const updated = mergeEventUpdate(event, {
+        assignments,
+        isAssigned: true,
+      })
+      await setEvent(eventId, updated)
+      setEventState({ id: eventId, ...updated })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "振り分けに失敗しました")
     }
     setAssigning(false)
   }
 
   const resetAssignment = async () => {
-    const res = await fetch(`/api/event?${eventQuery}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isAssigned: false }),
-    })
-    const data = await res.json()
-    if (res.ok) setEvent(data)
+    if (!event) return
+    const updated = mergeEventUpdate(event, { isAssigned: false })
+    await setEvent(eventId, updated)
+    setEventState({ id: eventId, ...updated })
   }
 
   const copyLink = async () => {

@@ -17,18 +17,19 @@
   "dependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "canvas-confetti": "^1.9.4",
+    "firebase": "^12.13.0",
     "framer-motion": "^12.38.0",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "firebase-tools": "^14.26.0",
     "@opennextjs/cloudflare": "^1.19.10",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "firebase-tools": "^14.26.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "wrangler": "^4.92.0"

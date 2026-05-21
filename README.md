@@ -34,4 +34,4 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 - **Vercel**: `vercel.json` + `pnpm run build`。手順は [docs/20260521-vercel-deploy.md](docs/20260521-vercel-deploy.md)
 - **Cloudflare**: OpenNext + Wrangler。手順は [docs/20260518-cloudflare-pages-deploy.md](docs/20260518-cloudflare-pages-deploy.md)
 
-本番の永続化には `FIREBASE_SERVICE_ACCOUNT_JSON_B64`（[`.env.example`](.env.example) 参照）を各ホスティングの環境変数に設定する。
+永続化は **Firebase Web SDK** → Cloud Firestore（[docs/20260521-firebase-sdk.md](docs/20260521-firebase-sdk.md)）。`.env.local` と Vercel / Cloudflare に `NEXT_PUBLIC_FIREBASE_*` を設定する。

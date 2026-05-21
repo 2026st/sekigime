@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation"
-import { isValidEventId } from "@/lib/kv"
+import { isValidEventId } from "@/lib/event-id"
 
 export default async function EventLayout({
   children,

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { RouletteAnimation } from "@/components/RouletteAnimation"
 import { Confetti } from "@/components/Confetti"
+import { getEvent } from "@/lib/firebase/events"
 
 type Phase = "idle" | "searching" | "animating" | "result" | "error"
 
@@ -29,19 +30,37 @@ export function ParticipantSeatView({ eventId }: Props) {
     setPhase("searching")
     setError("")
 
-    const res = await fetch(
-      `/api/seat?eventId=${encodeURIComponent(eventId)}&name=${encodeURIComponent(name.trim())}`
-    )
-    const data = await res.json()
+    try {
+      const event = await getEvent(eventId)
+      if (!event) {
+        setError("イベントが見つかりません")
+        setPhase("error")
+        return
+      }
+      if (!event.isAssigned) {
+        setError("まだ席が決まっていません。少しお待ちください！")
+        setPhase("error")
+        return
+      }
 
-    if (!res.ok) {
-      setError(data.error)
+      const trimmed = name.trim()
+      const assignment = event.assignments.find((a) => a.name.trim() === trimmed)
+      if (!assignment) {
+        setError("名前が見つかりませんでした。入力を確認してください。")
+        setPhase("error")
+        return
+      }
+
+      setResult({
+        name: assignment.name,
+        tableId: assignment.tableId,
+        tableCount: event.tables.length,
+      })
+      setPhase("animating")
+    } catch {
+      setError("読み込みに失敗しました")
       setPhase("error")
-      return
     }
-
-    setResult(data)
-    setPhase("animating")
   }
 
   const handleAnimationComplete = useCallback(() => {
