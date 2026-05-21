@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { OrganizerSetup } from "@/components/OrganizerSetup"
@@ -117,6 +118,13 @@ function HomeContent() {
               </p>
             )}
           </div>
+
+          <Link
+            href="/help"
+            className="inline-block text-yellow-400 text-sm underline hover:text-yellow-300"
+          >
+            主催者の使い方（ヘルプ）
+          </Link>
         </div>
       </div>
     )

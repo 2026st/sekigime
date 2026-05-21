@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useState } from "react"
 import { ParticipantEditor } from "@/components/ParticipantEditor"
 import { TableEditor } from "@/components/TableEditor"
@@ -108,15 +109,23 @@ export function OrganizerSetup({ eventId }: Props) {
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-black text-yellow-400">席決め</h1>
-          <span className="text-gray-500 text-sm">
-            {event.isAssigned ? (
-              <span className="text-green-400 font-bold">作成済み</span>
-            ) : (
-              "未作成"
-            )}
-          </span>
+          <div className="flex items-center gap-3 text-sm shrink-0">
+            <Link
+              href="/help"
+              className="text-yellow-400 underline hover:text-yellow-300"
+            >
+              使い方
+            </Link>
+            <span className="text-gray-500">
+              {event.isAssigned ? (
+                <span className="text-green-400 font-bold">作成済み</span>
+              ) : (
+                "未作成"
+              )}
+            </span>
+          </div>
         </div>
 
         {event.isAssigned && (
