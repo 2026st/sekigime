@@ -2,16 +2,15 @@
 
 import { useState, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { RouletteAnimation } from "@/components/RouletteAnimation"
+import { EnvelopeReveal } from "@/components/EnvelopeReveal"
 import { Confetti } from "@/components/Confetti"
 import { getEvent } from "@/lib/firebase/events"
 
-type Phase = "idle" | "searching" | "animating" | "result" | "error"
+type Phase = "idle" | "searching" | "reveal" | "error"
 
 type SeatResult = {
   name: string
   tableId: number
-  tableCount: number
 }
 
 type Props = {
@@ -54,17 +53,15 @@ export function ParticipantSeatView({ eventId }: Props) {
       setResult({
         name: assignment.name,
         tableId: assignment.tableId,
-        tableCount: event.tables.length,
       })
-      setPhase("animating")
+      setPhase("reveal")
     } catch {
       setError("読み込みに失敗しました")
       setPhase("error")
     }
   }
 
-  const handleAnimationComplete = useCallback(() => {
-    setPhase("result")
+  const handleOpened = useCallback(() => {
     setConfetti(true)
   }, [])
 
@@ -125,54 +122,20 @@ export function ParticipantSeatView({ eventId }: Props) {
           </motion.div>
         )}
 
-        {phase === "animating" && result && (
+        {phase === "reveal" && result && (
           <motion.div
-            key="animating"
-            initial={{ opacity: 0, scale: 0.9 }}
+            key="reveal"
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
+            exit={{ opacity: 0 }}
+            className="w-full flex justify-center"
           >
-            <p className="text-white text-xl mb-2">
-              <span className="text-yellow-400 font-bold">{result.name}</span> さんの席は...
-            </p>
-            <RouletteAnimation
-              targetId={result.tableId}
-              tableCount={result.tableCount}
-              onComplete={handleAnimationComplete}
+            <EnvelopeReveal
+              tableId={result.tableId}
+              participantName={result.name}
+              onOpened={handleOpened}
+              onReset={reset}
             />
-          </motion.div>
-        )}
-
-        {phase === "result" && result && (
-          <motion.div
-            key="result"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center space-y-4"
-          >
-            <p className="text-white text-xl">
-              <span className="text-yellow-400 font-bold">{result.name}</span> さんの席
-            </p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: [0, 1.2, 1.0] }}
-              transition={{ duration: 0.5, times: [0, 0.7, 1] }}
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-yellow-400 rounded-3xl blur-2xl opacity-30" />
-                <div className="relative bg-gray-800 border-4 border-yellow-400 rounded-3xl px-12 py-8">
-                  <p className="text-9xl font-black text-yellow-400 leading-none">{result.tableId}</p>
-                  <p className="text-2xl text-white font-bold mt-2">番テーブル</p>
-                </div>
-              </div>
-            </motion.div>
-            <p className="text-gray-400 text-lg">へどうぞ！</p>
-            <button
-              onClick={reset}
-              className="mt-4 text-gray-500 hover:text-gray-300 text-sm underline transition-colors"
-            >
-              別の名前を検索する
-            </button>
           </motion.div>
         )}
 
