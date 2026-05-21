@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Table } from "@/lib/types"
 
 type Props = {
@@ -11,6 +11,10 @@ type Props = {
 export function TableEditor({ tables, onSave }: Props) {
   const [localTables, setLocalTables] = useState<Table[]>(tables)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setLocalTables(tables)
+  }, [tables])
 
   const addTable = () => {
     const nextId = localTables.length > 0 ? Math.max(...localTables.map((t) => t.id)) + 1 : 1

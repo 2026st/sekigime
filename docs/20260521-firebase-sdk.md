@@ -53,6 +53,8 @@ pnpm dev
 
 「席決めを始める」→ Firestore の `events` にドキュメントが増えること。
 
+既存イベントの再開・再振り分けは [`docs/20260521-home-resume.md`](20260521-home-resume.md) を参照。
+
 ## コード構成
 
 | ファイル | 役割 |

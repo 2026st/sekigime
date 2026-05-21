@@ -119,6 +119,12 @@ export function OrganizerSetup({ eventId }: Props) {
           </span>
         </div>
 
+        {event.isAssigned && (
+          <p className="text-amber-400/90 text-sm bg-amber-900/20 border border-amber-400/30 rounded-xl px-4 py-3">
+            参加者・テーブルを保存すると振り分けが解除されます。変更後は席を再作成してください。
+          </p>
+        )}
+
         <ParticipantEditor participants={event.participants} onSave={saveParticipants} />
         <TableEditor tables={event.tables} onSave={saveTables} />
 
@@ -129,7 +135,11 @@ export function OrganizerSetup({ eventId }: Props) {
               disabled={assigning}
               className="flex-1 bg-yellow-400 text-gray-900 font-black text-lg py-4 rounded-xl hover:bg-yellow-300 disabled:opacity-50 transition-colors"
             >
-              {assigning ? "作成中..." : "席を作成"}
+              {assigning
+                ? "作成中..."
+                : event.isAssigned
+                  ? "席を再作成"
+                  : "席を作成"}
             </button>
             {event.isAssigned && (
               <button

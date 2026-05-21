@@ -3,7 +3,8 @@
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { OrganizerSetup } from "@/components/OrganizerSetup"
-import { createEvent } from "@/lib/firebase/events"
+import { parseEventIdFromUrl } from "@/lib/event-id"
+import { createEvent, getEvent } from "@/lib/firebase/events"
 import { isFirebaseConfigured } from "@/lib/firebase/config"
 
 function HomeContent() {
@@ -12,6 +13,9 @@ function HomeContent() {
   const eventId = searchParams.get("id")
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState("")
+  const [resumeUrl, setResumeUrl] = useState("")
+  const [resuming, setResuming] = useState(false)
+  const [resumeError, setResumeError] = useState("")
 
   const startEvent = async () => {
     setStarting(true)
@@ -29,6 +33,36 @@ function HomeContent() {
     } catch {
       setStartError("作成に失敗しました")
       setStarting(false)
+    }
+  }
+
+  const resumeEvent = async () => {
+    setResuming(true)
+    setResumeError("")
+    const id = parseEventIdFromUrl(resumeUrl)
+    if (!id) {
+      setResumeError("URL または ID が正しくありません")
+      setResuming(false)
+      return
+    }
+    try {
+      if (!isFirebaseConfigured()) {
+        setResumeError(
+          "Firebase が未設定です。.env.local に NEXT_PUBLIC_FIREBASE_* を設定してください。",
+        )
+        setResuming(false)
+        return
+      }
+      const data = await getEvent(id)
+      if (!data) {
+        setResumeError("イベントが見つかりません")
+        setResuming(false)
+        return
+      }
+      router.replace(`/?id=${id}`)
+    } catch {
+      setResumeError("読み込みに失敗しました")
+      setResuming(false)
     }
   }
 
@@ -50,6 +84,39 @@ function HomeContent() {
           {startError && (
             <p className="text-red-400 text-sm bg-red-900/30 rounded-lg px-4 py-2">{startError}</p>
           )}
+
+          <div className="flex items-center gap-3 text-gray-500 text-sm">
+            <div className="flex-1 h-px bg-gray-700" />
+            <span>または</span>
+            <div className="flex-1 h-px bg-gray-700" />
+          </div>
+
+          <div className="text-left space-y-3">
+            <h2 className="text-white font-bold text-lg">既存の席決めを編集</h2>
+            <p className="text-gray-400 text-sm">
+              参加者に渡した URL を貼り付けて、再振り分けや設定の変更を行えます
+            </p>
+            <input
+              type="text"
+              value={resumeUrl}
+              onChange={(e) => setResumeUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && resumeEvent()}
+              placeholder="https://example.com/550e8400-..."
+              className="w-full bg-gray-800 text-white text-sm rounded-xl px-4 py-3 border border-gray-700 focus:border-yellow-400 focus:outline-none"
+            />
+            <button
+              onClick={resumeEvent}
+              disabled={resuming || !resumeUrl.trim()}
+              className="w-full bg-gray-700 text-white font-bold text-lg py-4 rounded-2xl hover:bg-gray-600 disabled:opacity-50 transition-all active:scale-95"
+            >
+              {resuming ? "確認中..." : "続ける"}
+            </button>
+            {resumeError && (
+              <p className="text-red-400 text-sm bg-red-900/30 rounded-lg px-4 py-2">
+                {resumeError}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     )

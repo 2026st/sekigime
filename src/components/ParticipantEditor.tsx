@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 type Props = {
   participants: string[]
@@ -10,6 +10,10 @@ type Props = {
 export function ParticipantEditor({ participants, onSave }: Props) {
   const [text, setText] = useState(participants.join("\n"))
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    setText(participants.join("\n"))
+  }, [participants])
 
   const handleSave = async () => {
     setSaving(true)
