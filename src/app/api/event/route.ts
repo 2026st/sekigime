@@ -4,9 +4,70 @@ import { loadEvent, parseEventId } from "@/lib/api-event"
 import type { EventData } from "@/lib/types"
 
 export async function POST() {
-  const id = await createEvent()
-  const data = await getEvent(id)
-  return NextResponse.json({ id, ...data! })
+  // #region agent log
+  fetch("http://127.0.0.1:7850/ingest/5e841da2-d59d-417d-9a0b-746f17926180", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "507c2b",
+    },
+    body: JSON.stringify({
+      sessionId: "507c2b",
+      runId: "pre-fix",
+      hypothesisId: "H1",
+      location: "src/app/api/event/route.ts:POST:entry",
+      message: "POST /api/event handler",
+      data: { hasFirebaseEnv: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON_B64) },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {})
+  // #endregion
+  try {
+    const id = await createEvent()
+    const data = await getEvent(id)
+    // #region agent log
+    fetch("http://127.0.0.1:7850/ingest/5e841da2-d59d-417d-9a0b-746f17926180", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "507c2b",
+      },
+      body: JSON.stringify({
+        sessionId: "507c2b",
+        runId: "pre-fix",
+        hypothesisId: "H2",
+        location: "src/app/api/event/route.ts:POST:success",
+        message: "event created",
+        data: { idPrefix: id.slice(0, 8), hasData: Boolean(data) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
+    return NextResponse.json({ id, ...data! })
+  } catch (err) {
+    // #region agent log
+    fetch("http://127.0.0.1:7850/ingest/5e841da2-d59d-417d-9a0b-746f17926180", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "507c2b",
+      },
+      body: JSON.stringify({
+        sessionId: "507c2b",
+        runId: "pre-fix",
+        hypothesisId: "H1",
+        location: "src/app/api/event/route.ts:POST:error",
+        message: "createEvent failed",
+        data: { error: err instanceof Error ? err.message : String(err) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
+    return NextResponse.json(
+      { error: "イベントの作成に失敗しました" },
+      { status: 500 },
+    )
+  }
 }
 
 export async function GET(req: Request) {
