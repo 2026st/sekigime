@@ -8,20 +8,53 @@ type Props = {
   onSave: (tables: Table[]) => Promise<void>
 }
 
+type LocalTable = { id: number; capacity: string }
+
+function toLocalTables(tables: Table[]): LocalTable[] {
+  return tables.map((t) => ({ id: t.id, capacity: String(t.capacity) }))
+}
+
+const FULLWIDTH_DIGIT = /[\uFF10-\uFF19]/
+
+function hasFullwidthDigits(raw: string): boolean {
+  return FULLWIDTH_DIGIT.test(raw)
+}
+
+type CapacityValidation =
+  | { ok: true; value: number }
+  | { ok: false; reason: "empty" | "fullwidth" | "invalid" }
+
+function validateCapacity(raw: string): CapacityValidation {
+  const trimmed = raw.trim()
+  if (trimmed === "") return { ok: false, reason: "empty" }
+  if (hasFullwidthDigits(trimmed)) return { ok: false, reason: "fullwidth" }
+  const n = Number(trimmed)
+  if (!Number.isInteger(n) || n < 1 || n > 100) return { ok: false, reason: "invalid" }
+  return { ok: true, value: n }
+}
+
+function parseCapacity(raw: string): number | null {
+  const result = validateCapacity(raw)
+  return result.ok ? result.value : null
+}
+
 export function TableEditor({ tables, onSave }: Props) {
-  const [localTables, setLocalTables] = useState<Table[]>(tables)
+  const [localTables, setLocalTables] = useState<LocalTable[]>(() => toLocalTables(tables))
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    setLocalTables(tables)
+    setLocalTables(toLocalTables(tables))
+    setError(null)
   }, [tables])
 
   const addTable = () => {
     const nextId = localTables.length > 0 ? Math.max(...localTables.map((t) => t.id)) + 1 : 1
-    setLocalTables([...localTables, { id: nextId, capacity: 4 }])
+    setLocalTables([...localTables, { id: nextId, capacity: "4" }])
   }
 
-  const updateCapacity = (id: number, capacity: number) => {
+  const updateCapacity = (id: number, capacity: string) => {
+    setError(null)
     setLocalTables(localTables.map((t) => (t.id === id ? { ...t, capacity } : t)))
   }
 
@@ -30,12 +63,41 @@ export function TableEditor({ tables, onSave }: Props) {
   }
 
   const handleSave = async () => {
+    const validations = localTables.map((t) => ({
+      table: t,
+      result: validateCapacity(t.capacity),
+    }))
+    if (validations.some(({ result }) => !result.ok && result.reason === "fullwidth")) {
+      setError("入力数字は半角で入力してください")
+      return
+    }
+    if (validations.some(({ result }) => !result.ok && result.reason === "empty")) {
+      setError("各卓の定員を入力してください")
+      return
+    }
+    if (validations.some(({ result }) => !result.ok)) {
+      setError("各卓の定員を1〜100の数値で入力してください")
+      return
+    }
+    const parsed = validations.map(({ table, result }) => ({
+      table,
+      capacity: (result as { ok: true; value: number }).value,
+    }))
+    setError(null)
     setSaving(true)
-    await onSave(localTables)
+    await onSave(
+      parsed.map(({ table, capacity }) => ({
+        id: table.id,
+        capacity: capacity as number,
+      }))
+    )
     setSaving(false)
   }
 
-  const totalCapacity = localTables.reduce((sum, t) => sum + t.capacity, 0)
+  const totalCapacity = localTables.reduce((sum, t) => {
+    const n = parseCapacity(t.capacity)
+    return n !== null ? sum + n : sum
+  }, 0)
 
   return (
     <div className="bg-gray-800 rounded-2xl p-6">
@@ -54,7 +116,7 @@ export function TableEditor({ tables, onSave }: Props) {
               min={1}
               max={100}
               value={table.capacity}
-              onChange={(e) => updateCapacity(table.id, Number(e.target.value))}
+              onChange={(e) => updateCapacity(table.id, e.target.value)}
               className="w-20 bg-gray-700 text-white rounded px-2 py-1 text-center border border-gray-600 focus:border-yellow-400 focus:outline-none"
             />
             <span className="text-gray-400 text-sm">名</span>
@@ -73,6 +135,11 @@ export function TableEditor({ tables, onSave }: Props) {
       >
         + テーブルを追加
       </button>
+      {error && (
+        <p className="text-red-400 text-sm mb-3" role="alert">
+          {error}
+        </p>
+      )}
       <div className="flex items-center justify-between">
         <span className="text-gray-400 text-sm">
           合計定員: <span className="text-white font-bold">{totalCapacity}</span> 名
